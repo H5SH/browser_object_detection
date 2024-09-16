@@ -1,6 +1,7 @@
-from typing import Union
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, File
+from typing import Annotated
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 app = FastAPI()
 
@@ -19,7 +20,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+async def identifying_object_stream():
+    for i in range(10):
+        yield b"some photo"
 
 @app.post("/upload/file")
-def read_root(file: UploadFile):
-    return {"Hello": file.filename}
+async def read_root(file: UploadFile):
+    return {"filename": file.filename}
+    # return StreamingResponse(identifying_object_stream())
