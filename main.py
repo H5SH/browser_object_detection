@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from ultralytics import YOLO
+from PIL import Image
+import io
 
 app = FastAPI()
 
@@ -25,12 +27,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-async def identifying_object_stream():
-    for i in range(10):
-        yield b"some photo"
+async def identifying_object_stream(image):
+    capacitor_detected = capacitor_detector(image)
+    
+    if len(capacitor_detected[0].boxes) > 0:
+        yield b"Capacitor Detected"
+    else:
+        yield "Failed To detect Capacitor"
+
+    print(capacitor_detected, 'detected')
+
+    annotated_image = capacitor_detected[0].plot()
+
+    img_byte_arr = io.BytesIO()
+    Image.fromarray(annotated_image).save(img_byte_arr, format='PNG')
+    img_byte = img_byte_arr.getvalue()
 
 @app.post("/upload/file")
-async def read_root(file: UploadFile):
-    capacitor_detected = capacitor_detector(file)
-    return {"filename": file.filename}
-    # return StreamingResponse(identifying_object_stream())
+async def read_root(file: UploadFile = File()):
+    content = await file.read()
+    image = Image.open(io.BytesIO(content))
+
+    # print(img_byte, 'img')
+    return StreamingResponse(identifying_object_stream(image))
