@@ -32,16 +32,27 @@ async def identifying_object_stream(image):
     
     if len(capacitor_detected[0].boxes) > 0:
         yield b"Capacitor Detected"
+        for i, result in enumerate(capacitor_detected[0].boxes):
+            box = result.xyxy[0].cpu().numpy()
+            x1, y1, x2, y2 = map(int, box)
+
+            cropped_img = image.crop((x1 - 30, y1 - 30, x2 + 30, y2 + 30))
+
+            terminal_detected = terminal_detector(cropped_img)
+
+            if len(terminal_detected[0].boxes) > 0:
+                yield b"Terminal Detected"
+
     else:
         yield "Failed To detect Capacitor"
 
-    print(capacitor_detected, 'detected')
+    # print(capacitor_detected, 'detected')
 
-    annotated_image = capacitor_detected[0].plot()
+    # annotated_image = capacitor_detected[0].plot()
 
-    img_byte_arr = io.BytesIO()
-    Image.fromarray(annotated_image).save(img_byte_arr, format='PNG')
-    img_byte = img_byte_arr.getvalue()
+    # img_byte_arr = io.BytesIO()
+    # Image.fromarray(annotated_image).save(img_byte_arr, format='PNG')
+    # img_byte = img_byte_arr.getvalue()
 
 @app.post("/upload/file")
 async def read_root(file: UploadFile = File()):
