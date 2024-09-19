@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import SubmitButton from '../components/SubmitButton';
 
 interface ResponseObj {
   detected: Boolean,
@@ -13,13 +14,16 @@ interface ResponseObj {
 export default function Home() {
 
   const [file, setFile] = useState<Blob | null>()
+  const [imgSrc, setImgSrc] = useState<string>('')
+  const [btnLoading, setBtnLoading] = useState<Boolean>(false)
   const [responses, setResponses] = useState<Array<ResponseObj>>([])
-  const [imgSrc, setImgSrc] = useState<string>()
 
   async function submitFile(e: any) {
     e.preventDefault();
+    setBtnLoading(true)
     try {
       setResponses([])
+      setImgSrc('')
       const formData = new FormData();
       formData.append("file", file as Blob);
       const response = await fetch('http://127.0.0.1:8000/upload/file', {
@@ -29,7 +33,6 @@ export default function Home() {
       const reader: any = response.body?.getReader();
       const decoder = new TextDecoder('utf-8');
       let chunk = '';
-
       while (true) {
         const { done, value } = await reader?.read();
         if (done) break;
@@ -41,23 +44,22 @@ export default function Home() {
         }catch(e){
           setImgSrc(`data:image/png;base64,${chunk}`)
         }
-
       }
       } catch (er) {
         console.log(er)
       }
+      setBtnLoading(false)
     }
 
   return (
-      <div>
+      <div className="container m-5">
         <input type="file" onChange={(e) => setFile(e.target.files!![0])} />
-        <input type="button" onClick={submitFile} value={'submit'} />
+        <SubmitButton title='Submit' callback_event={submitFile} btnLoading={btnLoading}/>
         {responses.map((response: ResponseObj, index) => (
           <div key={index}>
             {response.detected ? (
               <div className="text-green-400">
-                {`${response.type} Detected`}
-                {imgSrc && <Image alt="img" width={200} height={200} src={imgSrc} />}
+                {`${response.type} Detected ${response.type === 'terminal' && response.detected_objects?.length ? response.detected_objects?.join(' '): ' '}`}
               </div>
             ) : (
               <div className="text-red-600">
@@ -66,7 +68,7 @@ export default function Home() {
             )}
           </div>
         ))}
-        {/* <Image alt="img" width={200} height={200} src={require('C:\\H5SH\\companies\\data_unfolding\\wiresDitection\\detecttion_web_app\\detection-next-app\\src\\app\\predicted\\terminal_8.jpg')} /> */}
+        {imgSrc && <Image alt="img" width={200} height={200} src={imgSrc} />}
       </div>
     );
   }

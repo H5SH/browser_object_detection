@@ -11,8 +11,8 @@ import base64
 
 app = FastAPI()
 
-capacitor_detector = YOLO('C:\H5SH\companies\data_unfolding\wiresDitection\detecttion_web_app\models\capacitors\yolo_capacitor.pt')
-terminal_detector = YOLO('C:\H5SH\companies\data_unfolding\wiresDitection\detecttion_web_app\models\\terminals\yolo_terminal.pt')
+capacitor_detector = YOLO('C:\H5SH\companies\data_unfolding\wiresDitection\detecttion_web_app\models\capacitors\yolo_all.pt')
+terminal_detector = YOLO('C:\H5SH\companies\data_unfolding\wiresDitection\detecttion_web_app\models\\terminals\yolo_all.pt')
 
 
 origins = [
@@ -36,34 +36,20 @@ def draw_boxes(image, detections):
     for result in detections[0].boxes:
         box = result.xyxy[0].cpu().numpy()
         x1, y1, x2, y2 = map(int, box)
-        draw.rectangle([x1, y1, x2, y2], outline="red", width=20)
+        draw.rectangle([x1, y1, x2, y2], outline="red", width=3)
     return image
 
-# def base64_img(img):
-#     img_byte_arr = io.BytesIO()
-
-#     img.save(img_byte_arr, format='PNG')
-#     img_byte_arr.seek(0)
-#     img_base64 = base64.b64encode(img_byte_arr.read()).decode('utf-8')
-
-#     return img_base64 
 
 def identifying_object_stream(image, name):
     capacitor_detected = capacitor_detector(image)
 
     if len(capacitor_detected[0].boxes) > 0:
 
-        output_path = os.path.join('C:\H5SH\companies\data_unfolding\wiresDitection\detecttion_web_app\detection-next-app\src\\app\predicted', name)
-        img = draw_boxes(image, capacitor_detected) 
-        img.save(output_path)
-        img_byte_arr = io.BytesIO()
+        output_path = os.path.join('C:\H5SH\companies\data_unfolding\wiresDitection\detecttion_web_app\predicted', name)
+        # img = draw_boxes(image, capacitor_detected) 
+        # img.save(output_path) 
 
-        img.save(img_byte_arr, format='PNG')
-        img_byte_arr.seek(0)
-        img_base64 = base64.b64encode(img_byte_arr.read()).decode('utf-8') 
-
-        yield json.dumps({"detected": True, "type": "capacitor", "image": output_path}).encode('utf-8')
-        yield img_base64
+        yield json.dumps({"detected": True, "type": "capacitor"}).encode('utf-8')
     
         for i, result in enumerate(capacitor_detected[0].boxes):
 
@@ -81,7 +67,7 @@ def identifying_object_stream(image, name):
 
                 output_path = os.path.join('C:\H5SH\companies\data_unfolding\wiresDitection\detecttion_web_app\detection-next-app\src\\app\predicted', f"terminal_{name}")
                 img = draw_boxes(cropped_img, terminal_detected)
-                img.save(output_path)
+                # img.save(output_path)
 
                 img_byte_arr = io.BytesIO()
 
@@ -90,12 +76,29 @@ def identifying_object_stream(image, name):
                 img_base64 = base64.b64encode(img_byte_arr.read()).decode('utf-8')
 
                 yield json.dumps({"detected": True, "type": "terminal", "detected_objects": detected_objects}).encode('utf-8')
-                yield img_base64
+                yield  img_base64
             else:
+                
+                img_byte_arr = io.BytesIO()
+
+                cropped_img.save(img_byte_arr, format='PNG')
+                img_byte_arr.seek(0)
+                img_base64 = base64.b64encode(img_byte_arr.read()).decode('utf-8')
+
                 yield json.dumps({"detected": False, "type": "terminal"}).encode('utf-8')
+                yield img_base64
 
     else:
+        
+        img_byte_arr = io.BytesIO()
+
+        image.save(img_byte_arr, format='PNG')
+        img_byte_arr.seek(0)
+        img_base64 = base64.b64encode(img_byte_arr.read()).decode('utf-8')
+
         yield json.dumps({"detected": False, "type": "capacitor"}).encode('utf-8')
+        yield img_base64
+
 
 @app.post("/upload/file")
 async def read_root(file: UploadFile = File()):
