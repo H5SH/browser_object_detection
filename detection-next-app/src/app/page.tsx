@@ -35,16 +35,18 @@ export default function Home() {
         if (done) break;
 
         chunk = decoder.decode(value, { stream: true });
-        const parsedData: ResponseObj = JSON.parse(chunk);
+        try{
+          const parsedData: ResponseObj = JSON.parse(chunk);
+          setResponses((prevState) => [...prevState, parsedData])
+        }catch(e){
+          setImgSrc(`data:image/png;base64,${chunk}`)
+        }
 
-        setResponses((prevState) => [...prevState, parsedData])
-        setTimeout(()=> setImgSrc(parsedData.image), 10000)
       }
       } catch (er) {
         console.log(er)
       }
     }
-
 
   return (
       <div>
@@ -55,7 +57,7 @@ export default function Home() {
             {response.detected ? (
               <div className="text-green-400">
                 {`${response.type} Detected`}
-                {imgSrc && <Image alt="img" width={200} height={200} src={require(response.image.replace('\\', '/'))} />}
+                {imgSrc && <Image alt="img" width={200} height={200} src={imgSrc} />}
               </div>
             ) : (
               <div className="text-red-600">
@@ -64,6 +66,7 @@ export default function Home() {
             )}
           </div>
         ))}
+        {/* <Image alt="img" width={200} height={200} src={require('C:\\H5SH\\companies\\data_unfolding\\wiresDitection\\detecttion_web_app\\detection-next-app\\src\\app\\predicted\\terminal_8.jpg')} /> */}
       </div>
     );
   }
